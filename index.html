@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Weather mock app</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--surface:#f1f6ff;--ink:#0a1f44;--muted:#566f94;--line:#cfe0f7;--accent:#0a6cff;--rain:#59b8ff;--temp:#0a5cff;--hd:"Barlow Condensed","Arial Narrow",sans-serif;color-scheme:light;box-sizing:border-box;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Barlow,system-ui,sans-serif}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+svg{display:block;width:100%;height:auto}
+main{max-width:880px;margin:0 auto;padding:20px 20px 56px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+.brand{display:flex;align-items:baseline;gap:16px}
+h1{font:700 1.7rem/1 var(--hd);margin:0;letter-spacing:.01em}
+.homebtn{font-weight:600;font-size:.95rem;color:var(--accent)}
+h2{font:700 1.2rem/1.2 var(--hd);margin:0 0 12px;letter-spacing:.02em}
+.bar,.chips,.badges{display:flex;flex-wrap:wrap;gap:8px}
+.bar{align-items:flex-end;gap:20px}
+button{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--ink);border-radius:3px;padding:5px 12px;cursor:pointer}
+button[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+[aria-label=Units] button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:2px;font-weight:600;color:var(--muted)}
+[aria-label=Units] button[aria-pressed=true]{color:var(--ink);border-color:var(--accent);background:none}
+.search{position:relative;min-width:220px;flex:1 1 220px;max-width:320px}
+.search input{width:100%;font:inherit;color:var(--ink);background:none;border:0;border-bottom:2px solid var(--ink);border-radius:0;padding:6px 0}
+.search input:focus{outline:0;border-color:var(--accent)}
+#res{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;margin:0;padding:4px 0;list-style:none;background:#fff;border:2px solid var(--ink);max-height:280px;overflow-y:auto}
+#res button{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;border-radius:0;background:none;text-align:left;padding:8px 12px}
+#res button:hover,#res button:focus-visible{background:var(--surface)}
+#res span{color:var(--muted);font-size:.85rem}
+#res .none{padding:8px 12px;color:var(--muted)}
+.sky{position:relative;container-type:inline-size;padding:24px 24px 20px;color:#fff;background:var(--sky,#2a6fb8);transition:background .25s}
+.sky>:not(.fx,.ico){position:relative;z-index:1}
+.sky .ico{position:absolute;top:20px;right:20px;width:76px;z-index:1}
+.place{font:700 1.4rem/1.1 var(--hd);letter-spacing:.02em}
+.temp{font:700 clamp(5.5rem,24vw,10rem)/.9 var(--hd);letter-spacing:-.02em;margin:4px 0 8px}
+.temp small{font-size:.3em;font-weight:500;letter-spacing:0;vertical-align:top;margin-left:6px}
+.cond{font-size:1.15rem;margin:0}
+.badges{margin-top:14px;gap:6px 20px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:.95rem}
+.badge svg{width:22px;flex:none}
+.scrub{margin-top:24px}
+.scrub label{display:block;font-weight:600;font-size:.95rem}
+input[type=range]{width:100%;accent-color:#fff;margin:8px 0 0}
+.grid{display:flex;flex-wrap:wrap;gap:12px 36px;margin-top:24px}
+.stat b{display:block;font:700 1.9rem/1 var(--hd)}
+.stat span{color:var(--muted);font-size:.9rem}
+section{border-top:2px solid var(--ink);padding-top:14px;margin-top:32px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.9rem;color:var(--muted);margin-bottom:8px}
+.legend i{display:inline-block;vertical-align:middle;margin-right:6px}
+.legend .l{width:20px;height:4px;background:var(--temp)}
+.legend .b{width:10px;height:14px;background:var(--rain)}
+.legend .n{width:14px;height:14px;background:var(--accent);opacity:.14}
+#chart{touch-action:pan-y;cursor:crosshair;user-select:none;-webkit-user-select:none}
+.tips,.adv{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 32px}
+.tips h3,.adv h3{font:700 1.1rem/1.2 var(--hd);margin:0 0 6px;letter-spacing:.02em}
+.tips ul,.adv ul{margin:0;padding:0;list-style:none}
+.tips li,.adv li{position:relative;padding-left:20px;margin:4px 0}
+.tips li::before,.adv li::before{position:absolute;left:0;font-weight:700}
+.tips>div:first-child li::before,.adv>div:first-child li::before{content:"+";color:var(--accent)}
+.tips>div+div li::before,.adv>div+div li::before{content:"\2013"}
+.chips{margin:0 0 14px}
+.day{display:grid;grid-template-columns:4.5rem 1fr auto;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line)}
+.day .d{font-weight:700}
+.day .c{color:var(--muted)}
+.day .r{font:700 1.25rem/1 var(--hd)}
+.day i{font-style:normal;color:var(--muted);font-weight:500}
+footer{color:var(--muted);font-size:.85rem;margin-top:32px}
+#home{position:relative;overflow:hidden;container-type:inline-size;min-height:100svh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;background:#0a6cff;color:#fff;padding:clamp(24px,8vw,96px)}
+#home>:not(.fx){position:relative;z-index:1}
+#home :focus-visible{outline-color:#fff}
+#home>svg{width:56px}
+#home h2{font:700 1.4rem/1 var(--hd);margin:0;letter-spacing:.02em}
+#time{font:700 clamp(5rem,26vw,11rem)/.85 var(--hd);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+#date{margin-top:8px}
+.clock{margin-bottom:8px}
+.now{font-size:1.25rem;font-weight:600;max-width:34ch}
+#home .badges{margin-top:0}
+.prefs{width:100%;max-width:560px;margin-top:8px}
+.prefs .chips{margin:0}
+#hchips button{background:none;color:#fff;border-color:#fff}
+#hchips button[aria-pressed=true]{background:#fff;color:#0a2a66}
+#home .tips{width:100%;max-width:560px;margin:12px 0 20px}
+#home .tips li::before{color:#fff}
+.go{background:#fff;color:#0a2a66;padding:12px 26px;font-weight:700;border-radius:3px;text-decoration:none}
+.fx{position:absolute;inset:0;overflow:hidden;border-radius:inherit;pointer-events:none}
+.fx .cl{position:absolute;left:-260px;animation:cloudMove linear infinite}
+.fx .drop{position:absolute;top:-30px;width:2px;height:16px;border-radius:2px;background:#d9ecff;transform:translate(0,-30px) rotate(10deg);animation:fall linear infinite}
+#hfx .drop{animation-name:fallTall}
+.fx .flash{position:absolute;inset:0;background:#fff;opacity:0;animation:flash 6s infinite}
+.out{animation:fadeOut .32s ease forwards}
+#home.in{animation:fadeIn .35s ease both}
+#dash.in{animation:dashIn .45s ease both}
+@keyframes cloudMove{to{transform:translateX(calc(100cqw + 260px))}}
+@keyframes fall{to{transform:translate(-50px,460px) rotate(10deg)}}
+@keyframes fallTall{to{transform:translate(-120px,120vh) rotate(10deg)}}
+@keyframes flash{0%,91%,96%,100%{opacity:0}92%{opacity:.4}93%{opacity:.05}94.5%{opacity:.3}}
+@keyframes fadeOut{to{opacity:0}}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes dashIn{from{opacity:0;transform:translateY(14px)}}
+@media (prefers-reduced-motion:reduce){.out,.in{animation:none}.fx .cl{animation:none;transform:translateX(calc(var(--p)*(100cqw + 260px)))}.fx .drop,.fx .flash{display:none}}
+@media (pointer:coarse){button{min-height:44px}}
+@media (max-width:600px){
+main{padding:14px 16px 40px}
+header{align-items:flex-start}
+.brand,.bar{width:100%}.bar{justify-content:space-between}
+.search{flex:1 1 100%;max-width:none;min-width:0}
+.search input{font-size:16px;padding:10px 0}
+#res{max-height:50svh}#res button{min-height:44px;align-items:center}
+.sky{padding:18px 16px 16px}
+.sky .ico{width:56px;top:14px;right:14px}
+.badges{gap:4px 14px}.badge{font-size:.9rem}
+input[type=range]{height:32px}
+.grid{gap:10px 28px}.stat b{font-size:1.6rem}
+.adv,.tips{grid-template-columns:1fr}
+.day{grid-template-columns:3.5rem 1fr auto}
+.go{width:100%;max-width:340px;text-align:center;padding:14px 22px}
+}
+
+/* wide screens: two columns (current weather on the left, details on the right) */
+@media (min-width:1000px){
+main{max-width:1240px;padding:28px 32px 64px;display:grid;grid-template-columns:minmax(340px,420px) minmax(0,1fr);column-gap:48px;align-items:start}
+header,footer{grid-column:1/-1}
+.content{min-width:0}
+.content>section:first-child{margin-top:0}
+.side .temp{font-size:7rem}
+}
+@media (min-width:1600px){
+main{max-width:1480px;grid-template-columns:minmax(380px,460px) minmax(0,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="home">
+<div class="fx" id="hfx" aria-hidden="true"></div>
+<div class="clock"><div id="time"></div><div id="date"></div></div>
+<svg viewBox="0 0 120 80" role="img" aria-label="Cloud"><path fill="#fff" d="M32 70a22 22 0 0 1-2-43.9A28 28 0 0 1 84 22a24 24 0 0 1 6 47.6V70z"/></svg>
+<h2>Weather</h2>
+<div class="now" id="hnow"></div>
+<div class="badges" id="hbadges"></div>
+<div class="prefs"><div class="chips" id="hchips" role="group" aria-label="Your interests"></div></div>
+<div class="tips">
+<div><h3>Recommended</h3><ul id="dos"></ul></div>
+<div><h3>Not recommended</h3><ul id="donts"></ul></div>
+</div>
+<a class="go" href="#dashboard">Open dashboard</a>
+</div>
+
+<main id="dash" hidden>
+<header>
+<div class="brand"><h1>Thailand Weather</h1><a class="homebtn" href="#home">Home</a></div>
+<div class="bar">
+<div class="search"><input id="q" type="search" autocomplete="off" placeholder="Search province" aria-label="Search for a province in Thailand"><ul id="res" hidden></ul></div>
+<div class="bar" role="group" aria-label="Units"><button id="uC" aria-pressed="true">°C</button><button id="uF" aria-pressed="false">°F</button></div>
+</div>
+</header>
+
+<div class="side">
+<div class="sky" id="sky">
+<div class="fx" id="fx" aria-hidden="true"></div>
+<div class="ico" id="ico"></div>
+<div class="place" id="place"></div>
+<div class="temp" id="temp"></div>
+<p class="cond" id="cond"></p>
+<p class="cond" id="live"></p>
+<div class="badges" id="badges"></div>
+<div class="scrub">
+<label for="hr" id="hrLabel"></label>
+<input id="hr" type="range" min="0" max="23" value="14" aria-label="Hour of the day">
+</div>
+</div>
+
+<div class="grid" id="stats"></div>
+</div>
+
+<div class="content">
+
+<section>
+<h2>Temperature and rain</h2>
+<div class="legend"><span><i class="l"></i>Temperature</span><span><i class="b"></i>Rain</span><span><i class="n"></i>Night</span></div>
+<svg id="chart" viewBox="0 0 600 266" role="img" aria-label="Hourly temperature and chance of rain chart"></svg>
+</section>
+
+<section>
+<h2 id="advTitle"></h2>
+<div class="chips" id="chips" role="group" aria-label="Your interests"></div>
+<div class="adv"><div><h3>Recommended</h3><ul id="adoes"></ul></div><div><h3>Not recommended</h3><ul id="adonts"></ul></div></div>
+</section>
+
+<section>
+<h2>5 days</h2>
+<div class="days" id="days"></div>
+</section>
+
+</div>
+
+<footer id="src"></footer>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* ---------- static data ---------- */
+
+const REGION_NAMES = {
+  N: 'Northern', NE: 'Northeastern', C: 'Central',
+  E: 'Eastern', W: 'Western', S: 'Southern'
+};
+
+// Typical climate per region, used for the sample data:
+// [avg temp, daily swing, humidity, wind, uv, rain chance, description]
+const REGION_CLIMATE = {
+  N:  [25, 7, 63, 8, 6, 8,  'Cool and clear'],
+  NE: [27, 6, 61, 10, 7, 10, 'Dry and sunny'],
+  C:  [30, 4, 72, 11, 8, 20, 'Warm with hazy sun'],
+  E:  [30, 4, 76, 14, 8, 40, 'Humid, passing showers'],
+  W:  [29, 6, 66, 10, 8, 15, 'Sunny spells'],
+  S:  [28, 3, 80, 13, 7, 60, 'Showers likely']
+};
+
+// "Name lat lon" for every province, grouped by region
+const PROVINCES_RAW = {
+N:'Chiang Mai 18.79 98.98,Chiang Rai 19.91 99.83,Lampang 18.29 99.49,Lamphun 18.58 99.01,Mae Hong Son 19.30 97.97,Nan 18.78 100.78,Phayao 19.17 99.90,Phrae 18.14 100.14,Uttaradit 17.63 100.10',
+NE:'Amnat Charoen 15.86 104.63,Bueng Kan 18.36 103.65,Buriram 14.99 103.10,Chaiyaphum 15.81 102.03,Kalasin 16.43 103.51,Khon Kaen 16.44 102.83,Loei 17.49 101.72,Maha Sarakham 16.18 103.30,Mukdahan 16.54 104.72,Nakhon Phanom 17.41 104.78,Nakhon Ratchasima 14.97 102.10,Nong Bua Lamphu 17.20 102.44,Nong Khai 17.88 102.74,Roi Et 16.05 103.65,Sakon Nakhon 17.16 104.15,Sisaket 15.12 104.33,Surin 14.88 103.49,Ubon Ratchathani 15.24 104.85,Udon Thani 17.41 102.79,Yasothon 15.79 104.14',
+C:'Bangkok 13.75 100.50,Ang Thong 14.59 100.45,Ayutthaya 14.35 100.57,Chai Nat 15.19 100.13,Kamphaeng Phet 16.48 99.52,Lopburi 14.80 100.65,Nakhon Nayok 14.21 101.21,Nakhon Pathom 13.82 100.06,Nakhon Sawan 15.70 100.14,Nonthaburi 13.86 100.51,Pathum Thani 14.02 100.53,Phetchabun 16.42 101.16,Phichit 16.44 100.35,Phitsanulok 16.82 100.26,Samut Prakan 13.60 100.60,Samut Sakhon 13.55 100.27,Samut Songkhram 13.41 100.00,Saraburi 14.53 100.91,Sing Buri 14.89 100.40,Sukhothai 17.01 99.82,Suphan Buri 14.47 100.12,Uthai Thani 15.38 100.03',
+E:'Chachoengsao 13.69 101.07,Chanthaburi 12.61 102.10,Chonburi (Pattaya) 13.36 100.98,Prachinburi 14.05 101.37,Rayong 12.68 101.28,Sa Kaeo 13.82 102.07,Trat 12.24 102.52',
+W:'Kanchanaburi 14.02 99.53,Tak 16.88 99.13,Prachuap Khiri Khan 11.81 99.80,Phetchaburi 13.11 99.94,Ratchaburi 13.53 99.82',
+S:'Chumphon 10.49 99.18,Krabi 8.09 98.91,Nakhon Si Thammarat 8.43 99.96,Narathiwat 6.43 101.82,Pattani 6.87 101.25,Phang Nga 8.45 98.53,Phatthalung 7.62 100.08,Phuket 7.88 98.39,Ranong 9.96 98.64,Satun 6.62 100.07,Songkhla (Hat Yai) 7.19 100.60,Surat Thani 9.14 99.33,Trang 7.56 99.61,Yala 6.54 101.28'
+};
+
+const CITIES = Object.entries(PROVINCES_RAW).flatMap(([region, list]) =>
+  list.split(',').map(entry => {
+    const [, name, lat, lon] = entry.match(/^(.+) ([\d.]+) ([\d.]+)$/);
+    const c = REGION_CLIMATE[region];
+    // tiny per-city offsets so neighbouring provinces don't look identical
+    return {
+      name, region,
+      lat: +lat, lon: +lon,
+      avgTemp: c[0] + (name.length % 3 - 1) * 0.5,
+      swing: c[1],
+      humidity: c[2],
+      wind: c[3],
+      uv: c[4],
+      rainChance: c[5] + (name.length % 5) * 2,
+      cond: c[6]
+    };
+  })
+);
+
+const INTERESTS = [
+  ['exercise', 'Exercise'],
+  ['sightseeing', 'Sightseeing'],
+  ['food', 'Food'],
+  ['shopping', 'Shopping'],
+  ['relaxation', 'Relaxation']
+];
+
+const DAY_OFFSETS = [0, 1, -1, 0, 2];
+const SAMPLE_CONDITIONS = ['Sunny', 'Cloudy', 'Showers', 'Partly cloudy', 'Clear spells'];
+
+/* ---------- state ---------- */
+
+let city = CITIES.find(c => c.name === 'Bangkok');
+let unit = 'C';
+let weather = null;          // current forecast (sample or live)
+let isLive = false;
+let updatedAt = null;       // when the live data last arrived
+let requestId = 0;           // used to ignore out-of-date fetches
+let selectedHour = null;     // set while the user is scrubbing the chart
+let interests = [];
+let effectsKind = '';
+const reduceMotion = matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ---------- small helpers ---------- */
+
+function save(key, value) {
+  try { localStorage.setItem(key, value); } catch {}
+}
+
+function load(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+// Celsius -> whichever unit is selected, rounded
+function toUnit(c) {
+  return Math.round(unit === 'C' ? c : c * 9 / 5 + 32);
+}
+
+const hourName = h => `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`;
+const hourLong = h => `${h % 12 || 12}:00 ${h < 12 ? 'AM' : 'PM'}`;
+const listItems = items => items.map(t => `<li>${t}</li>`).join('');
+const shortDay = date => new Date(date).toLocaleDateString('en', { weekday: 'short' });
+
+// WMO weather code -> text (Open-Meteo)
+function describeCode(code) {
+  if (code === 0) return 'Clear';
+  if (code < 3) return 'Partly cloudy';
+  if (code === 3) return 'Overcast';
+  if (code < 50) return 'Fog';
+  if (code < 60) return 'Drizzle';
+  if (code < 80) return 'Rain';
+  if (code < 90) return 'Showers';
+  return 'Thunderstorms';
+}
+
+// Collapse the description into one of a few categories we have art for
+function weatherKind(desc) {
+  const t = desc.toLowerCase();
+  if (/thunder/.test(t)) return 'thunder';
+  if (/rain|shower|drizzle/.test(t)) return 'rain';
+  if (/partly|spells/.test(t)) return 'partly';
+  if (/clear|sunny|dry/.test(t)) return 'clear';
+  return 'cloud';
+}
+
+// The sky gets a bit lighter around midday
+function skyColor(hour) {
+  const light = 34 + 13 * Math.max(0, Math.sin((hour - 6) / 24 * 2 * Math.PI));
+  return `hsl(214,100%,${Math.round(light)}%)`;
+}
+
+const bangkokFormat = opts => new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: 'Asia/Bangkok' });
+const timeFormat = bangkokFormat({ hour: '2-digit', minute: '2-digit', hour12: false });
+const dateFormat = bangkokFormat({ weekday: 'long', day: 'numeric', month: 'long' });
+const hourFormat = bangkokFormat({ hour: 'numeric', hour12: false });
+
+function updateClock() {
+  const now = new Date();
+  $('time').textContent = timeFormat.format(now);
+  $('date').textContent = dateFormat.format(now);
+}
+
+function syncUnitButtons() {
+  $('uC').setAttribute('aria-pressed', unit === 'C');
+  $('uF').setAttribute('aria-pressed', unit === 'F');
+}
+
+/* ---------- weather data ---------- */
+
+// Fake-but-plausible data, shown instantly and while the real request is running
+function makeSampleWeather(c) {
+  const { avgTemp: mid, swing, humidity, wind, uv, rainChance, cond } = c;
+  return {
+    cond, hum: humidity, wind, uv, rain: rainChance,
+    hourly: Array.from({ length: 24 }, (_, i) =>
+      mid + swing * Math.sin((i - 9) / 24 * 2 * Math.PI)),
+    hrain: Array.from({ length: 24 }, (_, i) =>
+      Math.round(Math.min(95, rainChance * (0.35 + 1.3 * Math.max(0, Math.sin((i - 10) / 12 * Math.PI)))))),
+    days: Array.from({ length: 5 }, (_, i) => ({
+      label: i ? shortDay(Date.now() + i * 864e5) : 'Today',
+      cond: i ? SAMPLE_CONDITIONS[(i + rainChance) % 5] : cond,
+      high: mid + swing / 2 + DAY_OFFSETS[i],
+      low: mid - swing / 2 + DAY_OFFSETS[i] / 2
+    }))
+  };
+}
+
+function loadWeather(silent = false) {
+  const thisRequest = ++requestId;
+  const c = city;
+
+  // a silent refresh keeps showing the current data until the new data arrives
+  if (!silent) {
+    isLive = false;
+    weather = makeSampleWeather(c);
+    render();
+  }
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}`
+    + '&current=temperature_2m,relative_humidity_2m,wind_speed_10m'
+    + '&hourly=temperature_2m,precipitation_probability'
+    + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max'
+    + '&forecast_days=5&timezone=Asia%2FBangkok';
+
+  fetch(url)
+    .then(res => res.json())
+    .then(json => {
+      // the user may have picked another province while we were waiting
+      if (thisRequest !== requestId || !json.daily) return;
+      const daily = json.daily;
+
+      weather = {
+        cond: describeCode(daily.weather_code[0]),
+        now: json.current.temperature_2m,
+        hum: Math.round(json.current.relative_humidity_2m),
+        wind: Math.round(json.current.wind_speed_10m),
+        uv: Math.round(daily.uv_index_max[0]),
+        rain: daily.precipitation_probability_max[0],
+        hourly: json.hourly.temperature_2m.slice(0, 24),
+        hrain: json.hourly.precipitation_probability.slice(0, 24).map(p => p || 0),
+        days: daily.time.map((t, i) => ({
+          label: i ? shortDay(t) : 'Today',
+          cond: describeCode(daily.weather_code[i]),
+          high: daily.temperature_2m_max[i],
+          low: daily.temperature_2m_min[i]
+        }))
+      };
+      isLive = true;
+      updatedAt = new Date();
+      render();
+    })
+    .catch(() => {});   // stay on the sample data if the request fails
+}
+
+/* ---------- icons ---------- */
+
+const CLOUD = '<path fill="#fff" d="M32 70a22 22 0 0 1-2-43.9A28 28 0 0 1 84 22a24 24 0 0 1 6 47.6V70z"/>';
+
+// big icons (120x80) for the main weather card
+const WEATHER_ICONS = {
+  thunder: CLOUD + '<path fill="#ffd35a" d="M62 44h14l-10 18h9L54 80l5-14h-9z"/>',
+  rain: CLOUD + '<path stroke="#bfe0ff" stroke-width="5" stroke-linecap="round" d="M40 74l-4 8M58 74l-4 8M76 74l-4 8"/>',
+  clear: '<circle cx="60" cy="40" r="20" fill="#ffd35a"/><path stroke="#ffd35a" stroke-width="5" stroke-linecap="round" d="M60 8v8M60 64v8M28 40h8M84 40h8M37 17l6 6M77 57l6 6M83 17l-6 6M43 57l-6 6"/>',
+  partly: `<circle cx="82" cy="26" r="15" fill="#ffd35a"/><g transform="translate(-8 6) scale(.85)">${CLOUD}</g>`,
+  cloud: CLOUD
+};
+
+function weatherIcon(desc) {
+  return `<svg viewBox="0 0 120 80" role="img" aria-label="${desc.toLowerCase()}">${WEATHER_ICONS[weatherKind(desc)]}</svg>`;
+}
+
+// small 24x24 icons used in the badges and the chart tooltip
+const SMALL_SVG_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" aria-hidden="true">';
+const DROP_PATH = 'M12 3c3 4 5.5 6.5 5.5 9.5a5.5 5.5 0 0 1-11 0C6.5 9.5 9 7 12 3z';
+
+function thermometer(outline, bulb, mercury) {
+  return `<path stroke="${outline}" d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/>`
+    + `<circle cx="12" cy="17" r="2.4" fill="${bulb}" stroke="none"/>`
+    + `<path stroke="${bulb}" d="${mercury}"/>`;
+}
+
+const SMALL_ICON_PARTS = {
+  sun: '<circle cx="12" cy="12" r="4.5" fill="#ffd35a"/><path stroke="#ffd35a" d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
+  moon: '<path fill="#e6efff" d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
+  hot: thermometer('#ffd0a0', '#ff8a3d', 'M12 7.5v9'),
+  cool: thermometer('#fff', '#8fd0ff', 'M12 14v3'),
+  rain: `<path fill="#7fd0ff" stroke="#fff" stroke-width="1.5" d="${DROP_PATH}"/>`,
+  dry: `<path stroke="#fff" d="${DROP_PATH}M4 4l16 16"/>`
+};
+
+const SMALL_ICONS = Object.fromEntries(
+  Object.entries(SMALL_ICON_PARTS).map(([name, parts]) => [name, SMALL_SVG_OPEN + parts + '</svg>'])
+);
+
+function badgesHtml(hour, temp, rainPct) {
+  const isDay = hour >= 6 && hour < 18;
+  const isHot = temp >= 33;
+  const isRainy = rainPct >= 50;
+  const badge = (icon, label) => `<span class="badge">${SMALL_ICONS[icon]}${label}</span>`;
+
+  return badge(isDay ? 'sun' : 'moon', isDay ? 'Daytime' : 'Night')
+    + badge(isHot ? 'hot' : 'cool', isHot ? 'Hot' : 'Not hot')
+    + badge(isRainy ? 'rain' : 'dry', isRainy ? `Rain ${rainPct}%` : 'No rain');
+}
+
+/* ---------- background animation (clouds, rain, lightning) ---------- */
+
+function drawWeatherEffects(desc) {
+  const kind = weatherKind(desc);
+  if (kind === effectsKind) return;   // nothing changed, keep the current animation
+  effectsKind = kind;
+
+  const rand = Math.random;
+  const cloudCount = { clear: 0, partly: 2, cloud: 4, rain: 4, thunder: 4 }[kind];
+  const dropCount = kind === 'rain' ? 60 : kind === 'thunder' ? 90 : 0;
+  let html = '';
+
+  for (let i = 0; i < cloudCount; i++) {
+    html += `<svg class="cl" viewBox="0 0 120 80" style="top:${4 + rand() * 55}%;width:${90 + rand() * 90}px;`
+      + `opacity:${kind === 'partly' ? 0.3 : 0.45};animation-duration:${28 + rand() * 30}s;`
+      + `animation-delay:-${rand() * 40}s;--p:${rand().toFixed(2)}" aria-hidden="true">${CLOUD}</svg>`;
+  }
+  for (let i = 0; i < dropCount; i++) {
+    html += `<i class="drop" style="left:${rand() * 105}%;animation-duration:${0.6 + rand() * 0.5}s;`
+      + `animation-delay:-${rand() * 1.5}s;opacity:${0.35 + rand() * 0.5}"></i>`;
+  }
+  if (kind === 'thunder') html += '<i class="flash"></i>';
+
+  $('fx').innerHTML = $('hfx').innerHTML = html;
+}
+
+/* ---------- activity advice ---------- */
+
+// Each activity has a list of suggestions. `ok` says whether it suits the moment,
+// `avoid` is the wording used in the "not recommended" list, and `fallback`
+// marks backup ideas that never show up as something to avoid.
+const ACTIVITIES = {
+  exercise: [
+    { text: 'Walk, run or cycle', avoid: 'Outdoor exercise',
+      ok: c => !c.wet && ['am', 'pm', 'eve'].includes(c.slot) && c.temp < 33 },
+    { text: 'Gym or indoor exercise', fallback: true,
+      ok: c => !ACTIVITIES.exercise[0].ok(c) && c.slot !== 'late' }
+  ],
+  sightseeing: [
+    { text: 'Outdoor sightseeing', avoid: 'Outdoor sightseeing',
+      ok: c => !c.wet && c.daytime && !(c.slot === 'mid' && (c.temp >= 33 || c.uv >= 8)) },
+    { text: 'Evening viewpoints', fallback: true,
+      ok: c => !c.wet && c.slot === 'eve' },
+    { text: 'Museums and galleries', fallback: true,
+      ok: c => c.daytime && !ACTIVITIES.sightseeing[0].ok(c) }
+  ],
+  food: [
+    { text: 'Outdoor dining', avoid: 'Outdoor dining',
+      ok: c => !c.wet && ['pm', 'eve'].includes(c.slot) && c.temp < 35 },
+    { text: 'Indoor dining', fallback: true,
+      ok: c => !ACTIVITIES.food[0].ok(c) && c.slot !== 'late' }
+  ],
+  shopping: [
+    { text: 'Shopping mall', avoid: 'Shopping',
+      ok: c => c.hour >= 10 && c.hour < 22 },
+    { text: 'Outdoor market', avoid: 'Outdoor markets',
+      ok: c => !c.wet && ['am', 'pm', 'eve'].includes(c.slot) }
+  ],
+  relaxation: [
+    { text: 'sleep or music ', avoid: 'sleep',
+      ok: c => c.hour >= 9 && c.hour < 21 },
+    { text: 'Beach or swimming', avoid: 'Beach and swimming',
+      ok: c => !c.wet && c.daytime && !(c.slot === 'mid' && c.uv >= 8) },
+    { text: 'Rest for tomorrow', fallback: true,
+      ok: c => c.slot === 'late' }
+  ]
+};
+
+function timeSlot(h) {
+  if (h >= 5 && h < 9) return 'am';
+  if (h >= 9 && h < 15) return 'mid';
+  if (h >= 15 && h < 18) return 'pm';
+  if (h >= 18 && h < 21) return 'eve';
+  return 'late';
+}
+
+// Short reason shown after each "Avoid ..." line
+function avoidReason(c) {
+  if (c.kind === 'thunder') return ' (storm)';
+  if (c.wet) return ' (rain)';
+  if (c.temp >= 33) return ' (heat)';
+  if (c.slot === 'mid' && c.uv >= 8) return ' (strong sun)';
+  if (c.slot === 'late') return ' (late)';
+  return ' (this hour)';
+}
+
+// Takes one item from each list in turn: [a1, a2], [b1] -> a1, b1, a2
+function interleave(lists) {
+  const result = [];
+  for (let i = 0; lists.some(l => l[i]); i++) {
+    lists.forEach(l => { if (l[i]) result.push(l[i]); });
+  }
+  return result;
+}
+
+// Returns [recommended, notRecommended], three items each at most
+function getAdvice(w, temp, kind, hour, rainPct) {
+  const slot = timeSlot(hour);
+  const daytime = ['am', 'mid', 'pm'].includes(slot);
+  const wet = kind === 'rain' || kind === 'thunder' || rainPct >= 60;
+  const ctx = { hour, temp, uv: w.uv, kind, wet, slot, daytime };
+
+  const activityDos = [];
+  const activityDonts = [];
+  const generalDos = [];
+  const generalDonts = [];
+
+  // activities, based on the interests the user picked (or all of them)
+  const keys = interests.length ? interests : INTERESTS.map(i => i[0]);
+  keys.forEach(key => {
+    const dos = [];
+    const donts = [];
+    ACTIVITIES[key].forEach(item => {
+      if (item.ok(ctx)) {
+        dos.push(item.text);
+      } else if (!item.fallback) {
+        donts.push(`Avoid ${item.avoid[0].toLowerCase() + item.avoid.slice(1)}${avoidReason(ctx)}`);
+      }
+    });
+    activityDos.push(dos);
+    activityDonts.push(donts);
+  });
+
+  // general tips that depend on the weather itself
+  if (kind === 'thunder') {
+    generalDos.push('Stay indoors');
+    generalDonts.push('Avoid open fields and beaches', 'No motorbike riding');
+  } else if (wet) {
+    generalDos.push('Bring an umbrella');
+    generalDonts.push('Avoid low-lying streets');
+  }
+  if (temp >= 33 && daytime) generalDos.push('Drink plenty of water');
+  if (w.uv >= 8 && daytime && !wet) generalDos.push('Wear sunscreen and a hat');
+  if (temp <= 21 && (slot === 'am' || slot === 'late')) generalDos.push('Wear a warm layer');
+  if (w.wind >= 18 && daytime) generalDonts.push('Avoid water sports');
+
+  const dos = generalDos.concat(interleave(activityDos));
+  const donts = generalDonts.concat(interleave(activityDonts));
+  if (!dos.length) dos.push('Rest indoors');
+  if (!donts.length) donts.push('Nothing to avoid');
+
+  return [dos.slice(0, 3), donts.slice(0, 3)];
+}
+
+/* ---------- interests (shared by home page and dashboard) ---------- */
+
+function renderInterestChips() {
+  const html = INTERESTS.map(([key, label]) =>
+    `<button type="button" data-k="${key}" aria-pressed="${interests.includes(key)}">${label}</button>`
+  ).join('');
+  $('chips').innerHTML = $('hchips').innerHTML = html;
+}
+
+function toggleInterest(e) {
+  const button = e.target.closest('button');
+  if (!button) return;
+
+  const key = button.dataset.k;
+  const index = interests.indexOf(key);
+  if (index > -1) interests.splice(index, 1);
+  else interests.push(key);
+
+  save('wx-pref', JSON.stringify(interests));
+  renderInterestChips();
+  render();
+}
+
+function renderHome() {
+  const w = weather;
+  const hour = parseInt(hourFormat.format(new Date()), 10) % 24;
+  const temp = w.now ?? w.hourly[hour];
+  const rainPct = w.hrain[hour];
+  const [dos, donts] = getAdvice(w, temp, weatherKind(w.cond), hour, rainPct);
+
+  $('hnow').textContent = `${city.name}: ${toUnit(temp)}°${unit}, ${w.cond}`;
+  $('hbadges').innerHTML = badgesHtml(hour, temp, rainPct);
+  $('dos').innerHTML = listItems(dos);
+  $('donts').innerHTML = listItems(donts);
+}
+
+/* ---------- province search ---------- */
+
+function setupSearch() {
+  const input = $('q');
+  const results = $('res');
+  let firstMatch = -1;   // index of the top result, picked on Enter
+
+  input.value = city.name;
+
+  function pick(index) {
+    city = CITIES[index];
+    save('wx-city', city.name);
+    input.value = city.name;
+    results.hidden = true;
+    loadWeather();
+  }
+
+  function reset() {
+    results.hidden = true;
+    input.value = city.name;
+  }
+
+  input.oninput = () => {
+    const term = input.value.trim().toLowerCase();
+    if (!term) { results.hidden = true; return; }
+
+    const matches = CITIES
+      .map((c, i) => ({ i, name: c.name, key: c.name.toLowerCase() }))
+      .filter(m => m.key.includes(term))
+      // names that start with the search term go first
+      .sort((a, b) => (a.key.startsWith(term) ? 0 : 1) - (b.key.startsWith(term) ? 0 : 1)
+        || a.name.localeCompare(b.name));
+
+    results.innerHTML = matches.length
+      ? matches.map(m =>
+          `<li><button type="button" data-i="${m.i}">${m.name}<span>${REGION_NAMES[CITIES[m.i].region]}</span></button></li>`
+        ).join('')
+      : '<li class="none">No results</li>';
+    results.hidden = false;
+    firstMatch = matches.length ? matches[0].i : -1;
+  };
+
+  input.onfocus = () => input.select();
+  input.onkeydown = e => {
+    if (e.key === 'Enter' && !results.hidden && firstMatch > -1) {
+      e.preventDefault();
+      pick(firstMatch);
+    }
+    if (e.key === 'Escape') reset();
+  };
+
+  results.onclick = e => {
+    const button = e.target.closest('button');
+    if (button) pick(+button.dataset.i);
+  };
+
+  // clicking anywhere outside the search box closes the list
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search')) reset();
+  });
+}
+
+/* ---------- hourly chart ---------- */
+
+function drawChart(w, hour, temps, minTemp, maxTemp, unitLabel) {
+  const el = $('chart');
+  const width = Math.max(300, Math.round(el.getBoundingClientRect().width) || 600);
+  const left = 20;
+  const right = width - 20;
+  const step = (right - left) / 23;
+  const fontSize = width < 460 ? 12 : 14;
+  const scrubbing = selectedHour !== null;
+  const barWidth = Math.max(6, Math.min(16, step * 0.62));
+
+  const xAt = i => left + i * step;
+  const yAt = t => 130 - (t - minTemp) / Math.max(1, maxTemp - minTemp) * 90;
+  const label = (x, y, size, fill, content, attrs = '') =>
+    `<text x="${x}" y="${y}" font-size="${size}" fill="${fill}" ${attrs}>${content}</text>`;
+  const line = (x1, x2, y1, y2, stroke, strokeWidth, attrs = '') =>
+    `<line x1="${x1}" x2="${x2}" y1="${y1}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}" ${attrs}/>`;
+
+  // shaded night hours and the hour labels along the bottom
+  let nightBands = '';
+  let hourTicks = '';
+  for (let i = 0; i < 24; i++) {
+    if (i < 6 || i >= 18) {
+      nightBands += `<rect x="${xAt(i) - step / 2}" y="0" width="${step}" height="195" fill="var(--accent)" opacity=".08"/>`;
+    }
+    if (i % 4 === 0) {
+      hourTicks += label(xAt(i), 228, fontSize + 1, 'var(--muted)', hourName(i), 'text-anchor="middle"');
+    }
+  }
+
+  // dashed line marking where it counts as "hot" (33°C), if it's inside the range
+  let hotLine = '';
+  const hotTemp = toUnit(33);
+  if (hotTemp > minTemp && hotTemp < maxTemp) {
+    hotLine = line(left, right, yAt(hotTemp), yAt(hotTemp), 'var(--temp)', 1.5, 'stroke-dasharray="6 5" opacity=".55"')
+      + label(right - 2, yAt(hotTemp) - 6, fontSize - 1, 'var(--muted)', `Hot from ${hotTemp}${unitLabel}`, 'text-anchor="end"');
+  }
+
+  // rain bars; while scrubbing, everything except the chosen hour fades out
+  const rainBars = w.hrain.map((pct, i) => {
+    const barHeight = Math.max(4, pct * 0.6);
+    const opacity = scrubbing ? (i === hour ? 1 : 0.35) : (pct >= 50 ? 0.95 : 0.6);
+    return `<rect x="${xAt(i) - barWidth / 2}" y="${195 - barHeight}" width="${barWidth}" height="${barHeight}" rx="2" fill="var(--rain)" opacity="${opacity}"/>`;
+  }).join('');
+
+  const linePath = temps.map((t, i) => `${i ? 'L' : 'M'}${xAt(i).toFixed(1)} ${yAt(t).toFixed(1)}`).join('');
+
+  // guide line and tooltip for the selected hour
+  let guide = '';
+  let tooltip = '';
+  if (scrubbing) {
+    const temp = w.hourly[hour];
+    const boxX = Math.min(width - 236, Math.max(0, xAt(hour) - 118));
+    const tipIcon = (name, x) => SMALL_ICONS[name].replace('<svg ', `<svg x="${x}" y="6" width="16" height="16" `);
+
+    guide = line(xAt(hour), xAt(hour), 0, 195, 'var(--ink)', 1.5, 'stroke-dasharray="4 4" opacity=".35"')
+      + `<circle cx="${xAt(hour)}" cy="${yAt(temps[hour])}" r="6" fill="var(--temp)" stroke="#fff" stroke-width="3"/>`;
+
+    tooltip = `<rect x="${boxX}" y="2" width="236" height="24" rx="3" fill="var(--accent)"/>`
+      + label(boxX + 12, 19, 13, '#fff', `${hourLong(hour)}, ${temps[hour]}${unitLabel}`, 'font-weight="700"')
+      + tipIcon(hour >= 6 && hour < 18 ? 'sun' : 'moon', boxX + 130)
+      + tipIcon(temp >= 33 ? 'hot' : 'cool', boxX + 154)
+      + tipIcon(w.hrain[hour] >= 50 ? 'rain' : 'dry', boxX + 178)
+      + label(boxX + 198, 19, 13, '#fff', w.hrain[hour] + '%', 'font-weight="600"');
+  }
+
+  el.setAttribute('viewBox', `0 0 ${width} 266`);
+  el.innerHTML = `<g transform="translate(0,30)">`
+    + line(left, right, 195, 195, 'var(--line)', 2)
+    + nightBands + hotLine + rainBars
+    + `<path d="${linePath}L${xAt(23)} 135L${left} 135Z" fill="var(--temp)" opacity=".1"/>`
+    + `<path d="${linePath}" fill="none" stroke="var(--temp)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`
+    + hourTicks + guide
+    + `</g>${tooltip}`;
+}
+
+/* ---------- main render ---------- */
+
+function render() {
+  const w = weather;
+  const hour = selectedHour ?? +$('hr').value;
+  const unitLabel = '°' + unit;
+  const temps = w.hourly.map(toUnit);
+  const minTemp = Math.min(...temps);
+  const maxTemp = Math.max(...temps);
+  const temp = w.hourly[hour];
+  const rainPct = w.hrain[hour];
+  const [dos, donts] = getAdvice(w, temp, weatherKind(w.cond), hour, rainPct);
+
+  // main card
+  $('sky').style.setProperty('--sky', skyColor(hour));
+  $('place').textContent = city.name;
+  $('temp').innerHTML = `${temps[hour]}<small>${unitLabel}</small>`;
+  $('cond').textContent = w.cond;
+  $('live').textContent = w.now === undefined ? ''
+    : `Right now: ${Math.round(w.now)}°C / ${Math.round(w.now * 9 / 5 + 32)}°F`;
+  $('ico').innerHTML = weatherIcon(w.cond);
+  drawWeatherEffects(w.cond);
+  renderHome();
+  $('badges').innerHTML = badgesHtml(hour, temp, rainPct);
+
+  // activity advice
+  $('advTitle').textContent = `Activities at ${hourLong(hour)}`;
+  $('adoes').innerHTML = listItems(dos);
+  $('adonts').innerHTML = listItems(donts);
+  $('hrLabel').textContent = hourLong(hour);
+
+  // stats row
+  const stats = [
+    [w.hum + '%', 'Humidity'],
+    [w.wind + ' km/h', 'Wind'],
+    [w.uv, 'UV index'],
+    [`${maxTemp}${unitLabel} / ${minTemp}${unitLabel}`, 'High / low']
+  ];
+  $('stats').innerHTML = stats.map(([value, name]) =>
+    `<div class="stat"><b>${value}</b><span>${name}</span></div>`).join('');
+
+  drawChart(w, hour, temps, minTemp, maxTemp, unitLabel);
+
+  // 5 day forecast
+  $('days').innerHTML = w.days.map(d =>
+    `<div class="day"><div class="d">${d.label}</div><div class="c">${d.cond}</div>`
+    + `<div class="r">${toUnit(d.high)}° <i>${toUnit(d.low)}°</i></div></div>`).join('');
+
+  $('src').textContent = isLive
+    ? `Live data: Open-Meteo · updated ${timeFormat.format(updatedAt)}`
+    : 'Sample data';
+}
+
+/* ---------- events ---------- */
+
+$('hr').oninput = render;
+
+// Touch or drag on the chart to inspect a single hour
+function setupChartScrubbing() {
+  const chart = $('chart');
+
+  function selectFromPointer(e) {
+    const box = chart.getBoundingClientRect();
+    const hour = Math.round((e.clientX - box.left - 20) / ((box.width - 40) / 23));
+    selectedHour = Math.max(0, Math.min(23, hour));
+    $('hr').value = selectedHour;
+    render();
+  }
+
+  function clearSelection() {
+    if (selectedHour !== null) {
+      selectedHour = null;
+      render();
+    }
+  }
+
+  chart.onpointerdown = e => {
+    try { chart.setPointerCapture(e.pointerId); } catch {}
+    selectFromPointer(e);
+  };
+  chart.onpointermove = e => {
+    if (e.pointerType === 'mouse' || e.buttons) selectFromPointer(e);
+  };
+  chart.onpointerup = chart.onpointercancel = clearSelection;
+  chart.onpointerleave = e => {
+    if (e.pointerType === 'mouse') clearSelection();
+  };
+}
+setupChartScrubbing();
+
+function setUnit(newUnit) {
+  unit = newUnit;
+  save('wx-unit', newUnit);
+  syncUnitButtons();
+  render();
+}
+$('uC').onclick = () => setUnit('C');
+$('uF').onclick = () => setUnit('F');
+
+$('chips').onclick = $('hchips').onclick = toggleInterest;
+$('hr').value = new Date().getHours();
+
+/* ---------- navigation between home and dashboard ---------- */
+
+function onShow(el) {
+  if (el.id === 'dash' && weather) render();
+}
+
+function route(animate) {
+  const goingToDash = location.hash === '#dashboard';
+  const show = goingToDash ? $('dash') : $('home');
+  const hide = goingToDash ? $('home') : $('dash');
+
+  // no animation on first load, with reduced motion, or if already on that page
+  if (!animate || reduceMotion || hide.hidden) {
+    hide.hidden = true;
+    show.hidden = false;
+    onShow(show);
+    scrollTo(0, 0);
+    return;
+  }
+
+  hide.classList.add('out');
+  setTimeout(() => {
+    hide.hidden = true;
+    hide.classList.remove('out');
+    show.hidden = false;
+    onShow(show);
+    show.classList.add('in');
+    scrollTo(0, 0);
+    setTimeout(() => show.classList.remove('in'), 500);
+  }, 320);
+}
+
+addEventListener('hashchange', () => route(true));
+
+// redraw the chart when the window is resized (debounced)
+let resizeTimer;
+addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (!$('dash').hidden && weather) render();
+  }, 120);
+});
+
+/* ---------- start ---------- */
+
+route(false);
+
+try {
+  interests = JSON.parse(load('wx-pref') || '[]').filter(key => INTERESTS.some(i => i[0] === key));
+} catch {
+  interests = [];
+}
+city = CITIES.find(c => c.name === load('wx-city')) || city;
+if (load('wx-unit') === 'F') {
+  unit = 'F';
+  syncUnitButtons();
+}
+
+renderInterestChips();
+updateClock();
+setInterval(updateClock, 15000);
+setupSearch();
+loadWeather();
+setInterval(() => loadWeather(true), 10 * 60 * 1000);
+</script>
+</body>
+</html>
